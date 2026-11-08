@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>imgserve: on-the-fly image resizing in one PHP file</title>
+<meta name="description" content="Live demo of imgserve, an open-source PHP image resizer: resize, crop, convert to WebP and cache on the fly. Change the controls and watch the real response.">
+<meta property="og:title" content="imgserve: on-the-fly image resizing in one PHP file">
+<meta property="og:description" content="Resize, crop, convert to WebP and cache images on the fly. Live demo, open source.">
+<meta property="og:image" content="https://img.bilgen.dev/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://img.bilgen.dev/">
+<style>
+:root{--bg:#0a0a0b;--panel:#111113;--line:#232327;--tx:#ecebe6;--mut:#8b8b92;--ac:#ff5b2e;--ok:#5bd68a}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--tx);font:16px/1.55 system-ui,-apple-system,'Segoe UI',sans-serif;padding:0 clamp(18px,4vw,40px) 60px}
+.wrap{max-width:1100px;margin:0 auto}
+header{padding:28px 0 8px;display:flex;justify-content:space-between;align-items:center;font:600 13px ui-monospace,Consolas,monospace;color:var(--mut)}
+header a{color:var(--mut);text-decoration:none}header a:hover{color:var(--tx)}header b{color:var(--tx)}header b i{color:var(--ac);font-style:normal}
+.eyebrow{font:400 12px ui-monospace,Consolas,monospace;color:var(--ac);letter-spacing:.16em;text-transform:uppercase;margin-top:36px}
+h1{font-size:clamp(34px,6vw,68px);line-height:1;letter-spacing:-.04em;margin:12px 0 16px;max-width:16ch}
+.lede{color:#bdbcb6;font-size:clamp(16px,2vw,19px);max-width:56ch}
+.grid{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:20px;margin-top:34px;align-items:start}
+.card{border:1px solid var(--line);background:var(--panel);border-radius:4px;padding:20px}
+label{display:block;font:600 11px ui-monospace,Consolas,monospace;color:var(--mut);letter-spacing:.08em;text-transform:uppercase;margin:14px 0 6px}
+label:first-child{margin-top:0}
+select,input[type=range]{width:100%}
+select{background:#0d0d0f;color:var(--tx);border:1px solid var(--line);border-radius:3px;padding:9px 10px;font:inherit}
+input[type=range]{accent-color:var(--ac)}
+.seg{display:flex;gap:6px}.seg button{flex:1;background:#0d0d0f;color:var(--mut);border:1px solid var(--line);border-radius:3px;padding:8px;cursor:pointer;font:inherit}
+.seg button.on{color:#0a0a0b;background:var(--ac);border-color:var(--ac);font-weight:700}
+.val{float:right;color:var(--tx)}
+.stage{display:grid;place-items:center;background:repeating-conic-gradient(#151517 0 25%,#0f0f11 0 50%) 0 0/20px 20px;border:1px solid var(--line);border-radius:4px;min-height:320px;padding:18px;overflow:auto}
+.stage img{max-width:100%;height:auto;display:block;box-shadow:0 18px 50px rgba(0,0,0,.55)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:14px}
+.stats div{background:var(--panel);padding:12px 14px}.stats small{display:block;font:11px ui-monospace,Consolas,monospace;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}.stats b{font-size:18px}
+.url{margin-top:14px;display:flex;gap:10px;align-items:center}
+code{flex:1;min-width:0;background:#0d0d0f;border:1px solid var(--line);border-radius:3px;padding:10px 12px;font:12.5px/1.5 ui-monospace,Consolas,monospace;word-break:break-all;color:#e4e3dc}
+button.copy{background:none;border:1px solid var(--line);color:var(--tx);border-radius:3px;padding:9px 14px;cursor:pointer;font:12px ui-monospace,Consolas,monospace}button.copy:hover{border-color:var(--ac)}
+.hit{color:var(--ok)}
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-top:20px}
+.cols h3{font-size:18px;margin-bottom:6px;letter-spacing:-.01em}.cols p{color:#bdbcb6;font-size:15px}
+pre{background:#0d0d0f;border:1px solid var(--line);border-radius:3px;padding:16px;overflow:auto;font:13px/1.6 ui-monospace,Consolas,monospace;margin-top:14px;color:#e4e3dc}
+footer{margin-top:40px;color:var(--mut);font:12px ui-monospace,Consolas,monospace}footer a{color:var(--tx)}
+@media(max-width:860px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.cols{grid-template-columns:1fr}}
+</style>
+</head>
+<body data-endpoint="../imgserve.php" data-images="images">
+<div class="wrap">
+  <header><b>img<i>serve</i></b><a href="https://github.com/eminbilgen/imgserve">GitHub ↗</a></header>
+  <p class="eyebrow">Open source · PHP · no dependencies</p>
+  <h1>Resize images on the fly.</h1>
+  <p class="lede">One PHP file turns a single original into the exact size, crop and format each screen needs, caches it, and tells browsers how long to keep it. Change the controls and watch the real response.</p>
+
+  <div class="grid">
+    <div class="card">
+      <label for="img">Original</label>
+      <select id="img"><option>dusk</option><option>forest</option><option>ocean</option><option>ember</option></select>
+      <label for="w">Width <span class="val" id="wv"></span></label>
+      <input id="w" type="range" min="0" max="10" step="1" value="5">
+      <label for="h">Height</label>
+      <select id="h"></select>
+      <label>Fit</label>
+      <div class="seg" id="fit"><button data-v="cover" class="on" type="button">cover</button><button data-v="contain" type="button">contain</button></div>
+      <label>Format</label>
+      <div class="seg" id="fmt"><button data-v="auto" class="on" type="button">auto</button><button data-v="webp" type="button">webp</button><button data-v="jpeg" type="button">jpeg</button><button data-v="png" type="button">png</button></div>
+      <label for="q">Quality <span class="val" id="qv">82</span></label>
+      <input id="q" type="range" min="40" max="95" value="82">
+      <label for="fx">Focus, left to right <span class="val" id="fxv">50%</span></label>
+      <input id="fx" type="range" min="0" max="100" value="50">
+    </div>
+    <div>
+      <div class="stage"><img id="out" alt="Resized preview from imgserve"></div>
+      <div class="stats">
+        <div><small>Size</small><b id="sSize">…</b></div>
+        <div><small>Format</small><b id="sType">…</b></div>
+        <div><small>Cache</small><b id="sCache">…</b></div>
+        <div><small>Pixels</small><b id="sDim">…</b></div>
+      </div>
+      <div class="url"><code id="url"></code><button class="copy" id="copy" type="button">Copy</button></div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="card"><h3>Safe by default</h3><p>Only files inside one folder can be served. Traversal, odd paths and non-images are refused, and sizes snap to a short list so nobody can fill your disk.</p></div>
+    <div class="card"><h3>Cached and cheap</h3><p>The first request renders, every later one is a file read. ETag and Cache-Control let browsers and CDNs skip the download entirely.</p></div>
+    <div class="card"><h3>Modern formats</h3><p><code style="padding:1px 6px">fmt=auto</code> sends WebP to browsers that accept it and a clean JPEG or PNG to the rest.</p></div>
+  </div>
+
+  <pre><code>&lt;img
+  src="imgserve.php?src=dusk.jpg&amp;w=800&amp;h=500&amp;fit=cover"
+  srcset="imgserve.php?src=dusk.jpg&amp;w=480&amp;h=300 480w,
+          imgserve.php?src=dusk.jpg&amp;w=800&amp;h=500 800w,
+          imgserve.php?src=dusk.jpg&amp;w=1280&amp;h=800 1280w"
+  sizes="(max-width: 700px) 100vw, 800px" alt=""&gt;</code></pre>
+  <footer>MIT licensed · by <a href="https://bilgen.dev">Emin Bilgen</a> · The four photos here are generated by <code style="padding:1px 6px">tools/make-samples.php</code>.</footer>
+</div>
+<script>
+const SIZES = [160, 240, 320, 480, 640, 800, 1024, 1280, 1600, 1920, 2400];
+const ep = document.body.dataset.endpoint, dir = document.body.dataset.images;
+const $ = (id) => document.getElementById(id);
+const state = { fit: 'cover', fmt: 'auto' };
+$('h').innerHTML = '<option value="0">auto (keep ratio)</option>' + SIZES.map((s) => `<option value="${s}">${s}px</option>`).join('');
+$('w').max = SIZES.length - 1; $('w').value = 5;
+let timer;
+function update() {
+  const w = SIZES[+$('w').value], h = +$('h').value;
+  $('wv').textContent = w + 'px'; $('qv').textContent = $('q').value; $('fxv').textContent = $('fx').value + '%';
+  const p = new URLSearchParams({ src: $('img').value + '.jpg', w, fit: state.fit, fmt: state.fmt, q: $('q').value, fx: ($('fx').value / 100).toFixed(2) });
+  if (h) p.set('h', h);
+  const url = `${ep}?${p}`;
+  $('url').textContent = url.replace(/^\.\.\//, '');
+  clearTimeout(timer);
+  timer = setTimeout(async () => {
+    try {
+      // one request feeds both the preview and the stats, so "miss" really is the first time this size was made
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) throw new Error(await r.text());
+      const b = await r.blob();
+      if ($('out').dataset.blob) URL.revokeObjectURL($('out').dataset.blob);
+      const o = URL.createObjectURL(b); $('out').dataset.blob = o; $('out').src = o;
+      $('sSize').textContent = (b.size / 1024).toFixed(1) + ' KB';
+      $('sType').textContent = (r.headers.get('content-type') || '').replace('image/', '');
+      const c = r.headers.get('x-imgserve') || 'n/a';
+      $('sCache').textContent = c; $('sCache').className = c === 'hit' ? 'hit' : '';
+    } catch (err) { $('sSize').textContent = 'error'; $('sCache').textContent = String(err.message || err).slice(0, 40); }
+  }, 120);
+}
+$('out').addEventListener('load', () => { $('sDim').textContent = $('out').naturalWidth + ' × ' + $('out').naturalHeight; });
+['img', 'w', 'h', 'q', 'fx'].forEach((id) => $(id).addEventListener('input', update));
+for (const g of ['fit', 'fmt']) $(g).addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; [...$(g).children].forEach((x) => x.classList.toggle('on', x === b)); state[g] = b.dataset.v; update(); });
+$('copy').addEventListener('click', () => { navigator.clipboard.writeText(location.origin + '/' + $('url').textContent); $('copy').textContent = 'Copied'; setTimeout(() => ($('copy').textContent = 'Copy'), 1200); });
+update();
+</script>
+</body>
+</html>
