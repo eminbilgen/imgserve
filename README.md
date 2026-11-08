@@ -31,16 +31,16 @@ Needs PHP 8.0 or newer with the GD extension (JPEG, PNG and WebP support). `exif
 | `src` | Path of the original, relative to `root`. Sub folders are fine. | required |
 | `w`, `h` | Target width and height. Give one or both. Values snap to the nearest entry of `sizes`. | at least one required |
 | `fit` | `cover` fills the box exactly and crops. `contain` fits inside it and keeps the whole picture. | `cover` |
-| `fx`, `fy` | Focal point for `cover`, from `0` to `1`. `fx=0` keeps the left edge. | `0.5` |
+| `fx`, `fy` | Focal point for `cover`, from `0` to `1` in steps of 0.05. `fx=0` keeps the left edge. | `0.5` |
 | `fmt` | `auto`, `webp`, `jpeg` or `png`. `auto` sends WebP to browsers that accept it. | `auto` |
-| `q` | Quality from 40 to 95 for JPEG and WebP. | `82` |
+| `q` | Quality from 40 to 95 for JPEG and WebP, in steps of 5. | `80` |
 
 It never enlarges an image beyond its original size. With `fmt=auto` the response carries `Vary: Accept`, so shared caches keep the formats apart.
 
 ## What it protects against
 
 - **Path traversal.** Only files that resolve inside `root` are served. `..`, absolute paths, backslashes, null bytes and symlinks that point outside are all refused.
-- **Cache flooding.** Sizes snap to a fixed list, so `w=701`, `w=702` and `w=703` share one cached file instead of three.
+- **Cache flooding.** Sizes snap to a fixed list, quality to steps of 5 and the focal point to steps of 0.05, so `w=701`, `w=702` and `w=703` share one cached file instead of three.
 - **Memory bombs.** Originals above `max_source_pixels` (40 megapixels by default) are refused before decoding.
 - **Information leaks.** Errors are short plain-text messages with no file system paths, and are never cached.
 - Only GET and HEAD are accepted, and only image extensions are served.
@@ -79,7 +79,7 @@ location ~ ^/(cache|src|tests|config\.php) { deny all; }
 ## Develop
 
 ```bash
-php tests/run.php            # 26 checks, no dependencies, needs GD
+php tests/run.php            # 27 checks, no dependencies, needs GD
 php tools/make-samples.php   # regenerates the demo images
 php -S localhost:8000 -t .   # then open http://localhost:8000/demo/
 ```

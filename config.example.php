@@ -13,6 +13,6 @@ return [
     // Refuse originals above this many pixels. Decoding needs roughly 4 bytes per pixel of memory.
     'max_source_pixels' => 40000000,
 
-    'default_quality' => 82,   // 40 to 95
+    'default_quality' => 80,   // 40 to 95, in steps of 5
     'max_age' => 86400,        // Cache-Control max-age, in seconds
 ];

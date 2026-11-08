@@ -80,6 +80,15 @@ t('clamps quality between 40 and 95', function () use ($cfg) {
     eq(Imgserve::parse(['src' => 'a.jpg', 'w' => '300', 'q' => '5'], $cfg)->q, 40);
     eq(Imgserve::parse(['src' => 'a.jpg', 'w' => '300', 'q' => '100'], $cfg)->q, 95);
 });
+t('quantizes quality and focal point so they cannot flood the cache', function () use ($cfg) {
+    eq(Imgserve::parse(['src' => 'a.jpg', 'w' => '300', 'q' => '83'], $cfg)->q, 85);
+    eq(Imgserve::parse(['src' => 'a.jpg', 'w' => '300', 'q' => '82'], $cfg)->q, 80);
+    eq(Imgserve::parse(['src' => 'a.jpg', 'w' => '300', 'fx' => '0.512'], $cfg)->fx, 0.5);
+    eq(Imgserve::parse(['src' => 'a.jpg', 'w' => '300', 'fx' => '0.99'], $cfg)->fx, 1.0);
+    $a = Imgserve::parse(['src' => 'a.jpg', 'w' => '300', 'q' => '81', 'fx' => '0.51'], $cfg);
+    $b = Imgserve::parse(['src' => 'a.jpg', 'w' => '300', 'q' => '79', 'fx' => '0.49'], $cfg);
+    eq([$a->q, $a->fx], [$b->q, $b->fx], 'nearby values share one cache entry');
+});
 
 echo "source resolution and security\n";
 t('serves a file inside the root, including sub folders', function () use ($cfg, $tmp) {

@@ -26,7 +26,7 @@ final class Config
         public readonly string $cacheDir,
         public readonly array $sizes = [160, 240, 320, 480, 640, 800, 1024, 1280, 1600, 1920, 2400],
         public readonly int $maxSourcePixels = 40_000_000,
-        public readonly int $defaultQuality = 82,
+        public readonly int $defaultQuality = 80,
         public readonly int $maxAge = 86400,
     ) {
     }
@@ -38,7 +38,7 @@ final class Config
             cacheDir: (string) $a['cache_dir'],
             sizes: $a['sizes'] ?? [160, 240, 320, 480, 640, 800, 1024, 1280, 1600, 1920, 2400],
             maxSourcePixels: (int) ($a['max_source_pixels'] ?? 40_000_000),
-            defaultQuality: (int) ($a['default_quality'] ?? 82),
+            defaultQuality: (int) ($a['default_quality'] ?? 80),
             maxAge: (int) ($a['max_age'] ?? 86400),
         );
     }
@@ -88,9 +88,10 @@ final class Imgserve
             throw new HttpError('fmt must be auto, webp, jpeg or png.', 400);
         }
         $qual = isset($q['q']) ? self::intParam($q['q'], 'q') : $c->defaultQuality;
-        $qual = max(40, min(95, $qual ?: $c->defaultQuality));
-        $fx = self::unit($q['fx'] ?? 0.5, 'fx');
-        $fy = self::unit($q['fy'] ?? 0.5, 'fy');
+        // quality and focal point are quantized too, so they cannot be used to multiply cache files
+        $qual = (int) (round(max(40, min(95, $qual ?: $c->defaultQuality)) / 5) * 5);
+        $fx = round(self::unit($q['fx'] ?? 0.5, 'fx') * 20) / 20;
+        $fy = round(self::unit($q['fy'] ?? 0.5, 'fy') * 20) / 20;
         return new Params($src, $w ? self::snap($w, $c->sizes) : 0, $h ? self::snap($h, $c->sizes) : 0, $fit, $fmt, $qual, $fx, $fy);
     }
 
