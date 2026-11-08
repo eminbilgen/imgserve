@@ -6,6 +6,9 @@ declare(strict_types=1);
  * then request:  imgserve.php?src=photos/cat.jpg&w=800&h=600&fit=cover&fmt=auto
  */
 
+// Warnings must never be printed into an image response. Errors still go to the server log.
+ini_set('display_errors', '0');
+
 require __DIR__ . '/src/Imgserve.php';
 
 use Imgserve\Config;

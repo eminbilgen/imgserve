@@ -58,7 +58,7 @@ php imgserve.php prune 30   # delete cached files untouched for 30 days
 
 Run it from cron. The cache folder is safe to delete at any time; it simply refills.
 
-If you serve the cache folder from a path that is reachable from the web, block directory listing there. The `imgserve.php` entry point is all that needs to be public.
+The cache folder does not need to be reachable from the web, because imgserve reads the files and sends them itself. If it lives inside your site root (some hosts restrict PHP with `open_basedir`, which then forces this), deny it in the web server so people cannot browse it. Only the `imgserve.php` entry point has to be public.
 
 ### nginx example
 
@@ -68,7 +68,7 @@ location = /imgserve.php {
     fastcgi_pass unix:/run/php/php8.2-fpm.sock;
     fastcgi_param SCRIPT_FILENAME $document_root/imgserve.php;
 }
-location ~ ^/(cache|src|tests|config\.php) { deny all; }
+location ~ ^/(cache|src|tests|tools|config\.php) { deny all; }
 ```
 
 ## Limits
