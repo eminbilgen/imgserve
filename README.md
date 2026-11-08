@@ -41,6 +41,7 @@ It never enlarges an image beyond its original size. With `fmt=auto` the respons
 
 - **Path traversal.** Only files that resolve inside `root` are served. `..`, absolute paths, backslashes, null bytes and symlinks that point outside are all refused.
 - **Cache flooding.** Sizes snap to a fixed list, quality to steps of 5 and the focal point to steps of 0.05, so `w=701`, `w=702` and `w=703` share one cached file instead of three.
+- **Disk filling.** Set `max_cache_mb` and the oldest cached files are removed once the folder passes the cap.
 - **Memory bombs.** Originals above `max_source_pixels` (40 megapixels by default) are refused before decoding.
 - **Information leaks.** Errors are short plain-text messages with no file system paths, and are never cached.
 - Only GET and HEAD are accepted, and only image extensions are served.
@@ -79,7 +80,7 @@ location ~ ^/(cache|src|tests|config\.php) { deny all; }
 ## Develop
 
 ```bash
-php tests/run.php            # 27 checks, no dependencies, needs GD
+php tests/run.php            # 28 checks, no dependencies, needs GD
 php tools/make-samples.php   # regenerates the demo images
 php -S localhost:8000 -t .   # then open http://localhost:8000/demo/
 ```

@@ -15,4 +15,7 @@ return [
 
     'default_quality' => 80,   // 40 to 95, in steps of 5
     'max_age' => 86400,        // Cache-Control max-age, in seconds
+
+    // Soft cap for the cache folder in megabytes. When it is exceeded the oldest files are removed. 0 = unlimited.
+    'max_cache_mb' => 500,
 ];

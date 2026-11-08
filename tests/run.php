@@ -231,6 +231,21 @@ t('prune removes old cache files only', function () use ($cfg, $tmp, $get) {
     eq(is_file($fresh['file']), true);
 });
 
+t('the cache size cap removes the oldest files first', function () use ($tmp, $get) {
+    $small = new Config($tmp . '/images', $tmp . '/cache', maxCacheMb: 1);
+    $old = $tmp . '/cache/aa/bb/old.bin';
+    $new = $tmp . '/cache/aa/bb/new.bin';
+    @mkdir($tmp . '/cache/aa/bb', 0777, true);
+    file_put_contents($old, str_repeat('x', 700000));
+    file_put_contents($new, str_repeat('y', 700000));
+    touch($old, time() - 3600);
+    $n = Imgserve::enforceLimit($small);
+    eq($n >= 1, true);
+    eq(is_file($old), false);
+    eq(is_file($new), true);
+    eq(Imgserve::enforceLimit(new Config($tmp . '/images', $tmp . '/cache')), 0, 'no cap means no deletion');
+});
+
 // clean up
 $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($tmp, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
 foreach ($it as $f) {

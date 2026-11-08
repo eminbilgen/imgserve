@@ -20,6 +20,7 @@ final class Config
      * @param int[]  $sizes            Allowed widths and heights. Requests snap to the nearest one, which bounds the cache.
      * @param int    $maxSourcePixels  Refuse originals bigger than this many pixels (decoding memory is roughly 4 bytes per pixel).
      * @param int    $maxAge           Cache-Control max-age in seconds.
+     * @param int    $maxCacheMb       Soft cap for the cache folder in megabytes (0 = unlimited). Oldest files go first.
      */
     public function __construct(
         public readonly string $root,
@@ -28,6 +29,7 @@ final class Config
         public readonly int $maxSourcePixels = 40_000_000,
         public readonly int $defaultQuality = 80,
         public readonly int $maxAge = 86400,
+        public readonly int $maxCacheMb = 0,
     ) {
     }
 
@@ -40,6 +42,7 @@ final class Config
             maxSourcePixels: (int) ($a['max_source_pixels'] ?? 40_000_000),
             defaultQuality: (int) ($a['default_quality'] ?? 80),
             maxAge: (int) ($a['max_age'] ?? 86400),
+            maxCacheMb: (int) ($a['max_cache_mb'] ?? 0),
         );
     }
 }
@@ -302,6 +305,9 @@ final class Imgserve
                     @unlink($tmp);
                     throw new HttpError('Could not write to the cache.', 500);
                 }
+                if ($c->maxCacheMb > 0 && random_int(1, 40) === 1) {
+                    self::enforceLimit($c); // an occasional sweep keeps the cost off most requests
+                }
             }
             $headers['X-Imgserve'] = $state;
             $headers['Content-Length'] = (string) filesize($file);
@@ -309,6 +315,39 @@ final class Imgserve
         } catch (HttpError $e) {
             return ['status' => $e->status, 'headers' => ['Content-Type' => 'text/plain; charset=utf-8', 'Cache-Control' => 'no-store'], 'file' => null, 'body' => $e->getMessage() . "\n"];
         }
+    }
+
+    /** Removes the oldest cached files until the cache folder is under 90% of its cap. Returns how many were removed. */
+    public static function enforceLimit(Config $c): int
+    {
+        if ($c->maxCacheMb <= 0 || !is_dir($c->cacheDir)) {
+            return 0;
+        }
+        $files = [];
+        $total = 0;
+        $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($c->cacheDir, \FilesystemIterator::SKIP_DOTS));
+        foreach ($it as $f) {
+            if ($f->isFile()) {
+                $files[] = [$f->getMTime(), $f->getSize(), $f->getPathname()];
+                $total += $f->getSize();
+            }
+        }
+        $cap = $c->maxCacheMb * 1048576;
+        if ($total <= $cap) {
+            return 0;
+        }
+        usort($files, fn ($a, $b) => $a[0] <=> $b[0]);
+        $removed = 0;
+        foreach ($files as [, $size, $path]) {
+            if ($total <= $cap * 0.9) {
+                break;
+            }
+            if (@unlink($path)) {
+                $total -= $size;
+                $removed++;
+            }
+        }
+        return $removed;
     }
 
     /** Deletes cached files not touched for $days days. Returns how many were removed. */
